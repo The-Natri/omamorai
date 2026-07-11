@@ -1,0 +1,23 @@
+# Environment Variables
+.env
+
+# Hardhat build artifacts
+/contracts/artifacts/
+/contracts/cache/
+/contracts/deployed_addresses.json
+
+# Python dependencies
+/agents/venv/
+/agents/__pycache__/
+/agents/history.json
+
+# Node dependencies and build folders
+node_modules/
+/frontend/dist/
+/frontend/node_modules/
+/hsp-integration/package-lock.json
+/hsp-integration/node_modules/
+
+# Local configuration files
+.env.local
+.env.*.local

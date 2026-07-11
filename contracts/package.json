@@ -1,0 +1,18 @@
+{
+  "name": "omamorai-contracts",
+  "version": "1.0.0",
+  "description": "Smart contracts for Omamorai on HSK Chain",
+  "main": "index.js",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.2",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat": "^2.22.5"
+  }
+}

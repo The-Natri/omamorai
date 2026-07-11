@@ -1,0 +1,19 @@
+{
+  "name": "omamorai-hsp-integration",
+  "version": "1.0.0",
+  "description": "Omamorai TypeScript HSP Interceptor",
+  "main": "interceptor.ts",
+  "scripts": {
+    "start": "ts-node interceptor.ts"
+  },
+  "dependencies": {
+    "axios": "^1.7.2",
+    "dotenv": "^16.4.5",
+    "ethers": "^6.13.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.9",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.2"
+  }
+}
