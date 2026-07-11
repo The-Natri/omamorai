@@ -14,6 +14,7 @@ import {
   Coins, 
   Loader2 
 } from 'lucide-react';
+import logo from './assets/logo.png';
 
 // API endpoints
 const FRAUD_AGENT_URL = 'http://localhost:5001';
@@ -177,10 +178,8 @@ export default function App() {
     <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
       {/* Header Branding */}
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{ background: 'var(--primary)', color: 'white', padding: '0.75rem', borderRadius: '16px' }}>
-            <Shield size={32} />
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <img src={logo} alt="Omamorai Logo" style={{ width: '54px', height: '54px', objectFit: 'contain', borderRadius: '12px' }} />
           <div>
             <h1 style={{ fontSize: '2rem', color: 'var(--primary)', fontFamily: 'var(--font-display)' }}>おまもりアイ (Omamorai)</h1>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>高齢者向け AIオンチェーン金融ガーディアン</p>
