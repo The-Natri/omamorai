@@ -28,11 +28,34 @@ export default function App() {
   const [context, setContext] = useState('User received a text alert claiming unpaid tax bills.');
   
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState('SAFE'); // SAFE, WARNING, BLOCKED
+  const [status, setStatus] = useState('BLOCKED'); // SAFE, WARNING, BLOCKED
   
   // Evaluation results
-  const [evalResult, setEvalResult] = useState(null);
+  const [evalResult, setEvalResult] = useState({
+    fraud: {
+      verdict: 'BLOCKED',
+      risk_score: 95,
+      explanation_ja: '警告：税金支払い詐欺（還付金詐欺）の手口を検知したため、送金を自動ブロックしました。警察や官公庁が暗号資産で急ぎの支払いを求めることは絶対にありません。送金を中止し、ご家族にご相談ください。',
+      explanation: 'Blocked: Severe pressure language/scam target detected. Government entities do not demand crypto payments.'
+    },
+    audit: { 
+      verdict: 'BLOCKED', 
+      risk_score: 95, 
+      on_chain_status: 'Logged to HSK testnet', 
+      tx_hash: '0x9e9f5da9f134c17698a6b3e1d96a381225f64efba523272422ba3d46f267e93f' 
+    }
+  });
+
   const [logs, setLogs] = useState([
+    {
+      timestamp: new Date().toLocaleString(),
+      recipient: '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC',
+      amount: '50.0',
+      verdict: 'BLOCKED',
+      riskScore: 95,
+      explanation: 'Blocked: Severe pressure language/scam target detected. Government entities do not demand crypto payments.',
+      explanation_ja: '警告：税金支払い詐欺（還付金詐欺）の手口を検知したため、送金を自動ブロックしました。警察や官公庁が暗号資産で急ぎの支払いを求めることは絶対にありません。送金を中止し、ご家族にご相談ください。'
+    },
     {
       timestamp: new Date(Date.now() - 3600000).toLocaleString(),
       recipient: '0x71C8b1704982d79745c5dfc40f578c7efc425f0b',
