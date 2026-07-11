@@ -87,11 +87,14 @@ def check_fraud():
     }
     """
     data = request.json or {}
-    user = data.get("user", "").lower()
+    user = data.get("user", "0x6632B36cBf9ebEc8c4DF8ad37d176C706DAC5F84").lower()
     recipient = data.get("recipient", "").lower()
     amount = float(data.get("amount", 0))
-    urgency_text = data.get("urgency_text", "")
+    urgency_text = data.get("urgency_text", data.get("message", ""))
     context = data.get("context", "")
+    
+    if isinstance(context, dict):
+        context = json.dumps(context)
 
     if not user or not recipient or amount <= 0:
         return jsonify({"error": "Invalid request parameters"}), 400
@@ -137,9 +140,26 @@ Do not output any markdown formatting or extra text outside the JSON block.
 
     try:
         model = genai.GenerativeModel(MODEL_NAME)
+        
+        import google.ai.generativelanguage as glm
+        fraud_schema = glm.Schema(
+            type=glm.Type.OBJECT,
+            properties={
+                "verdict": glm.Schema(type=glm.Type.STRING, enum=["CLEARED", "FLAGGED", "BLOCKED"]),
+                "risk_score": glm.Schema(type=glm.Type.INTEGER),
+                "explanation": glm.Schema(type=glm.Type.STRING),
+                "explanation_ja": glm.Schema(type=glm.Type.STRING),
+                "reasoning": glm.Schema(type=glm.Type.STRING),
+            },
+            required=["verdict", "risk_score", "explanation", "explanation_ja", "reasoning"]
+        )
+
         response = model.generate_content(
             prompt,
-            generation_config={"response_mime_type": "application/json"}
+            generation_config={
+                "response_mime_type": "application/json",
+                "response_schema": fraud_schema
+            }
         )
         
         result = json.loads(response.text)
@@ -166,6 +186,10 @@ Do not output any markdown formatting or extra text outside the JSON block.
             "explanation_ja": "セキュリティ確認システムが一時的にオフラインです。安全のため、ご家族の承認が必要です。",
             "reasoning": f"Gemini API failure: {str(e)}"
         })
+
+@app.route("/health", methods=["GET"])
+def health():
+    return jsonify({"status": "healthy"})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5001)
