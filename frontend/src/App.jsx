@@ -22,36 +22,17 @@ const YIELD_AGENT_URL = 'http://localhost:5002';
 
 export default function App() {
   // UI states
-  const [recipient, setRecipient] = useState('0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC');
-  const [amount, setAmount] = useState('50');
-  const [urgencyText, setUrgencyText] = useState('Please transfer immediately to avoid fee penalties!');
-  const [context, setContext] = useState('User received a text alert claiming unpaid tax bills.');
+  const [recipient, setRecipient] = useState('');
+  const [amount, setAmount] = useState('');
+  const [urgencyText, setUrgencyText] = useState('');
+  const [context, setContext] = useState('');
   
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('SAFE'); // SAFE, WARNING, BLOCKED
   
   // Evaluation results
   const [evalResult, setEvalResult] = useState(null);
-  const [logs, setLogs] = useState([
-    {
-      timestamp: new Date(Date.now() - 3600000).toLocaleString(),
-      recipient: '0x71C...897',
-      amount: '30.0',
-      verdict: 'CLEARED',
-      riskScore: 5,
-      explanation: 'Cleared regular local grocery payment.',
-      explanation_ja: '日常の食料品購入のための通常送金として承認されました。'
-    },
-    {
-      timestamp: new Date(Date.now() - 7200000).toLocaleString(),
-      recipient: '0x999...999',
-      amount: '500.0',
-      verdict: 'BLOCKED',
-      riskScore: 98,
-      explanation: 'Blocked known scam destination (police impersonation).',
-      explanation_ja: '警察官を装った詐欺口座への送金としてブロックされました。安全が守られました。'
-    }
-  ]);
+  const [logs, setLogs] = useState([]);
 
   const [yieldData, setYieldData] = useState({
     options: [],
