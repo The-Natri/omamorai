@@ -21,3 +21,8 @@ node_modules/
 # Local configuration files
 .env.local
 .env.*.local
+
+# Temporary screenshots and media edits
+scam_*.png
+scam_verdict_result*
+/edit/
