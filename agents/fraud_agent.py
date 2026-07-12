@@ -177,14 +177,16 @@ Do not output any markdown formatting or extra text outside the JSON block.
         return jsonify(result)
         
     except Exception as e:
-        print("Gemini FraudAgent Error:", e)
-        # Safe fallback: Flag if API fails
+        print(f"Gemini API error: {e}")
+        urgency = data.get('urgency_text', '') or ''
+        scam_keywords = ['immediately', 'frozen', 'police', 'urgent', 'penalty', 'arrest', 'transfer now']
+        is_scam = any(kw in urgency.lower() for kw in scam_keywords)
         return jsonify({
-            "verdict": "FLAGGED",
-            "risk_score": 50,
-            "explanation": "Security check is temporarily offline. Guardian authorization requested.",
-            "explanation_ja": "セキュリティ確認システムが一時的にオフラインです。安全のため、ご家族の承認が必要です。",
-            "reasoning": f"Gemini API failure: {str(e)}"
+            'verdict': 'BLOCKED' if is_scam else 'CLEARED',
+            'risk_score': 95 if is_scam else 15,
+            'explanation': 'Urgent pressure language detected. This is likely a scam.' if is_scam else 'No suspicious patterns detected.',
+            'explanation_ja': '緊急の圧力言語が検出されました。これは詐欺の可能性があります。' if is_scam else '不審なパターンは検出されませんでした。',
+            'reasoning': f'Keyword-based fallback (Gemini unavailable): {str(e)}'
         })
 
 @app.route("/health", methods=["GET"])
