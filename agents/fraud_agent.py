@@ -106,26 +106,20 @@ def check_fraud():
     is_new_recipient = recipient not in stats["known_recipients"]
     avg_amount = stats["avg_amount"]
 
-    # Call verification agent
-    recipient_trust_score = "Unverified — treat with caution"
+    import requests as http_requests
+
+    # Call VerificationAgent first
+    trust_result = {"trust_level": "UNVERIFIED", "risk": 50, "reason": "Verification service unavailable"}
     try:
-        import urllib.request
-        import json
-        req = urllib.request.Request(
+        verify_resp = http_requests.post(
             "http://localhost:5004/verify-address",
-            data=json.dumps({"address": recipient}).encode(),
-            headers={"Content-Type": "application/json"},
-            method="POST"
+            json={"address": data.get("recipient", "")},
+            timeout=5
         )
-        with urllib.request.urlopen(req, timeout=3) as r:
-            res_data = json.loads(r.read().decode())
-            trust_level = res_data.get("trust_level", "UNVERIFIED")
-            reason = res_data.get("reason", "")
-            recipient_trust_score = f"{trust_level} (Reason: {reason})"
-    except Exception as e:
-        print(f"Error calling verification agent: {e}")
-        
-    data["recipient_trust_score"] = recipient_trust_score
+        if verify_resp.ok:
+            trust_result = verify_resp.json()
+    except Exception as ve:
+        print(f"VerificationAgent unreachable: {ve}")
 
     # Craft prompt
     prompt = f"""
@@ -148,7 +142,7 @@ Analyze this payment request carefully for ALL of the following risk factors:
 
 Payment details:
 - Recipient Address: {data.get('recipient', 'Unknown')}
-- Recipient Trust Score: {data.get('recipient_trust_score', 'Unverified — treat with caution')}
+- Recipient Trust Level: {trust_result.get('trust_level')} (Risk: {trust_result.get('risk')}/100) — {trust_result.get('reason')}
 - Message / Urgency Text: {data.get('urgency_text', '')}
 - Context provided by user: {data.get('context', '')}
 
@@ -233,7 +227,7 @@ Return only the JSON. No preamble, no markdown.
             'risk_score': 90 if is_scam else 15,
             'explanation': f'Suspicious pattern detected: {", ".join(matched[:3])}. This may be a scam. Do not send money.' if is_scam else 'No suspicious patterns detected.',
             'explanation_ja': '不審なパターンが検出されました。詐欺の可能性があります。送金しないでください。' if is_scam else '不審なパターンは検出されませんでした。',
-            'reasoning': f'Keyword fallback (Gemini quota exceeded). Matched: {matched}'
+            'reasoning': f'Keyword fallback. Recipient: {trust_result}. Matched keywords: {matched}'
         })
 
 @app.route("/health", methods=["GET"])
