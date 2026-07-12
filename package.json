@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "install:all": "npm install --prefix frontend",
-    "dev": "concurrently --kill-others \"npm --prefix frontend run dev\" \"agents\\venv\\Scripts\\python -u agents\\fraud_agent.py\" \"agents\\venv\\Scripts\\python -u agents\\auditor_agent.py\" \"agents\\venv\\Scripts\\python -u agents\\yield_agent.py\""
+    "dev": "concurrently --kill-others \"npm --prefix frontend run dev\" \"agents\\venv\\Scripts\\python -u agents\\fraud_agent.py\" \"agents\\venv\\Scripts\\python -u agents\\auditor_agent.py\" \"agents\\venv\\Scripts\\python -u agents\\yield_agent.py\" \"agents\\venv\\Scripts\\python -u agents\\verification_agent.py\""
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

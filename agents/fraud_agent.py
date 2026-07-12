@@ -106,6 +106,27 @@ def check_fraud():
     is_new_recipient = recipient not in stats["known_recipients"]
     avg_amount = stats["avg_amount"]
 
+    # Call verification agent
+    recipient_trust_score = "Unverified — treat with caution"
+    try:
+        import urllib.request
+        import json
+        req = urllib.request.Request(
+            "http://localhost:5004/verify-address",
+            data=json.dumps({"address": recipient}).encode(),
+            headers={"Content-Type": "application/json"},
+            method="POST"
+        )
+        with urllib.request.urlopen(req, timeout=3) as r:
+            res_data = json.loads(r.read().decode())
+            trust_level = res_data.get("trust_level", "UNVERIFIED")
+            reason = res_data.get("reason", "")
+            recipient_trust_score = f"{trust_level} (Reason: {reason})"
+    except Exception as e:
+        print(f"Error calling verification agent: {e}")
+        
+    data["recipient_trust_score"] = recipient_trust_score
+
     # Craft prompt
     prompt = f"""
 You are a financial fraud detection AI protecting an elderly Japanese person from financial scams.
