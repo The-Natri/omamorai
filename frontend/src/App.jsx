@@ -97,70 +97,100 @@ export default function App() {
     setLoading(true);
     setEvalResult(null);
 
-    // Simulate AI agent screening latency
-    setTimeout(() => {
-      let mockVerdict = 'CLEARED';
-      let mockRisk = 12;
-      let mockJp = '日常の通常送金として安全が確認されました。手続きを進めていただけます。';
-      let mockEn = 'Regular transaction cleared successfully.';
+    try {
+      // 1. Call FraudAgent
+      const fraudRes = await axiosPost(`${FRAUD_AGENT_URL}/check-fraud`, {
+        user: '0x90F8bf65DCCf190e0006867664B90d54F859239D', // Mock User
+        recipient,
+        amount: parseFloat(amount),
+        urgency_text: urgencyText,
+        context
+      });
 
-      const amountVal = parseFloat(amount) || 0;
-      const lowerText = urgencyText.toLowerCase();
-
-      if (
-        lowerText.includes('immediately') || 
-        lowerText.includes('frozen') || 
-        lowerText.includes('police') || 
-        lowerText.includes('penalty') || 
-        lowerText.includes('penalties') || 
-        recipient.toLowerCase() === '0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc'
-      ) {
-        mockVerdict = 'BLOCKED';
-        mockRisk = 95;
-        mockJp = '警告：税金支払い詐欺（還付金詐欺）の手口を検知したため、送金を自動ブロックしました。警察や官公庁が暗号資産で急ぎの支払いを求めることは絶対にありません。送金を中止し、ご家族にご相談ください。';
-        mockEn = 'Blocked: Severe pressure language/scam target detected. Government entities do not demand crypto payments.';
-      } else if (amountVal > 200) {
-        mockVerdict = 'FLAGGED';
-        mockRisk = 65;
-        mockJp = '注意：普段の利用額と異なる高額送金のため、一時保留にしました。ご家族（後見人）のスマートフォンへの通知と承認が必要になります。';
-        mockEn = 'Flagged: High value transaction anomaly. Family guardian validation triggered.';
-      }
-
-      const mockRes = {
-        verdict: mockVerdict,
-        risk_score: mockRisk,
-        explanation_ja: mockJp,
-        explanation: mockEn
-      };
+      // 2. Call AuditorAgent
+      const auditRes = await axiosPost(`${AUDITOR_AGENT_URL}/audit-payment`, {
+        user: '0x90F8bf65DCCf190e0006867664B90d54F859239D',
+        recipient,
+        amount: parseFloat(amount),
+        urgency_text: urgencyText,
+        context,
+        fraud_verdict: fraudRes
+      });
 
       setEvalResult({
-        fraud: mockRes,
-        audit: { 
-          verdict: mockVerdict, 
-          risk_score: mockRisk, 
-          on_chain_status: 'Logged to HSK testnet', 
-          tx_hash: '0x9e9f5da9f134c17698a6b3e1d96a381225f64efba523272422ba3d46f267e93f' 
+        fraud: fraudRes,
+        audit: auditRes
+      });
+
+      // Update status banner
+      if (auditRes.verdict === 'BLOCKED') {
+        setStatus('BLOCKED');
+      } else if (auditRes.verdict === 'FLAGGED') {
+        setStatus('WARNING');
+      } else {
+        setStatus('SAFE');
+      }
+
+      // Add to logs
+      setLogs(prev => [
+        {
+          timestamp: new Date().toLocaleString(),
+          recipient: recipient,
+          amount: amount,
+          verdict: auditRes.verdict,
+          riskScore: auditRes.risk_score,
+          explanation: fraudRes.explanation,
+          explanation_ja: fraudRes.explanation_ja || '安全確認が完了しました。'
+        },
+        ...prev
+      ]);
+
+    } catch (error) {
+      console.error('Simulation check failed', error);
+      
+      // Fix 1 — Null guard in the catch block
+      if (urgencyText && (urgencyText.toLowerCase().includes('immediately') || urgencyText.toLowerCase().includes('frozen') || urgencyText.toLowerCase().includes('police'))) {
+        console.warn('Urgent threat detected in fallback block');
+      }
+
+      // Fix 2 — Add a proper error state instead of crashing (with compatibility keys for JSX)
+      setEvalResult({
+        verdict: 'ERROR',
+        risk_score: 0,
+        explanation: 'Could not connect to security agent. Please make sure the system is running.',
+        explanation_ja: 'セキュリティエージェントに接続できませんでした。',
+        reasoning: error.message,
+        fraud: {
+          verdict: 'ERROR',
+          risk_score: 0,
+          explanation: 'Could not connect to security agent. Please make sure the system is running.',
+          explanation_ja: 'セキュリティエージェントに接続できませんでした。',
+          reasoning: error.message
+        },
+        audit: {
+          verdict: 'ERROR',
+          risk_score: 0,
+          on_chain_status: 'Error'
         }
       });
 
-      if (mockVerdict === 'BLOCKED') setStatus('BLOCKED');
-      else if (mockVerdict === 'FLAGGED') setStatus('WARNING');
-      else setStatus('SAFE');
+      setStatus('WARNING');
 
       setLogs(prev => [
         {
           timestamp: new Date().toLocaleString(),
-          recipient: recipient || '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC',
-          amount: amount || '0',
-          verdict: mockVerdict,
-          riskScore: mockRisk,
-          explanation: mockEn,
-          explanation_ja: mockJp
+          recipient: recipient,
+          amount: amount,
+          verdict: 'ERROR',
+          riskScore: 0,
+          explanation: 'Could not connect to security agent. Please make sure the system is running.',
+          explanation_ja: 'セキュリティエージェントに接続できませんでした。'
         },
         ...prev
       ]);
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   // Helper for mock fetching
