@@ -3,7 +3,7 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
 
-load_dotenv(dotenv_path="../.env")
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "../.env"))
 
 app = Flask(__name__)
 CORS(app)
@@ -49,6 +49,10 @@ def yield_opportunities():
         "overall_apy": 2.73, # Weighted average APY
         "description": "Omamorai is locked to the most conservative allocation. High risk or speculative yields are excluded."
     })
+
+@app.route("/health", methods=["GET"])
+def health():
+    return jsonify({"status": "healthy"})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5002)
