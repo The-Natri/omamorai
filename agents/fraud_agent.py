@@ -108,34 +108,39 @@ def check_fraud():
 
     # Craft prompt
     prompt = f"""
-You are the AI engine of Omamorai, a financial guardian for Japan's elderly.
-Analyze this payment intent for potential fraud.
+You are a financial fraud detection AI protecting an elderly Japanese person from financial scams.
 
-User Wallet: {user}
-Recipient: {recipient}
-Amount: {amount} USDC
-Urgency/Message from Recipient: "{urgency_text}"
-Context/Details of transaction: "{context}"
+Analyze this payment request carefully for ALL of the following risk factors:
 
-Security Parameters from History:
-- User's average transaction size: {avg_amount:.2f} USDC
-- Recipient is new (never paid before): {is_new_recipient}
-- Recipient is a known blacklisted scam address: {is_known_scam}
+1. URGENCY LANGUAGE — pressure to act immediately, threats, countdown deadlines, "act now or lose everything"
+2. AUTHORITY IMPERSONATION — someone claiming to be police, FSA, tax office, bank official, court, government
+3. CONTEXT MISMATCH — stated reason doesn't match the nature of the request (e.g. "grocery payment" but sent to unknown overseas address)
+4. KNOWN SCAM PATTERNS:
+   - Refund/overpayment scams ("we overpaid you, send back the difference")
+   - Prize/lottery scams ("you won, pay a small fee to claim")
+   - Investment guarantee scams ("guaranteed returns, no risk")
+   - Romantic scams ("I love you, please send money")
+   - Grandchild impersonation ("grandma it's me, I'm in trouble")
+5. ISOLATION TACTICS — "don't tell your family", "this is our secret", "your family won't understand"
+6. RECIPIENT TRUST — consider the recipient trust score provided below
+7. FEAR OR SHAME TACTICS — threatening arrest, legal action, public embarrassment
 
-Analysis guidelines:
-1. Urgency Pressure: Look for urgent, threatening language like "transfer now", "frozen", "police", "arrest", "FSA", "tax agency", "emergency".
-2. Anomalies: Amount is significantly larger (> 2x) than average transaction size.
-3. Impersonation: Ore Ore ("it's me") family emergencies, official government/police pressure.
-4. Scam Blacklist: If blacklisted, verdict MUST be BLOCKED.
+Payment details:
+- Recipient Address: {data.get('recipient', 'Unknown')}
+- Recipient Trust Score: {data.get('recipient_trust_score', 'Unverified — treat with caution')}
+- Message / Urgency Text: {data.get('urgency_text', '')}
+- Context provided by user: {data.get('context', '')}
 
-You must output a single JSON response with the following fields:
-- verdict: "CLEARED" (safe), "FLAGGED" (suspicious or large, requires guardian), or "BLOCKED" (very high risk or known scam).
-- risk_score: integer from 0 to 100 representing the risk.
-- explanation: A clear, friendly explanation in English for the elderly user.
-- explanation_ja: A very polite, soft, clear Japanese explanation for the elderly user (using polite Keigo, explaining safety actions).
-- reasoning: A detailed technical reason in English outlining why this decision was reached.
+Based on all factors above, return your analysis in this exact JSON format:
+{{
+  "verdict": "BLOCKED" or "FLAGGED" or "CLEARED",
+  "risk_score": <integer 0-100>,
+  "explanation": "<plain English explanation, simple enough for an 80 year old>",
+  "explanation_ja": "<same explanation in simple Japanese>",
+  "reasoning": "<brief technical reasoning for audit log>"
+}}
 
-Do not output any markdown formatting or extra text outside the JSON block.
+Return only the JSON. No preamble, no markdown.
 """
 
     try:
@@ -178,15 +183,36 @@ Do not output any markdown formatting or extra text outside the JSON block.
         
     except Exception as e:
         print(f"Gemini API error: {e}")
-        urgency = data.get('urgency_text', '') or ''
-        scam_keywords = ['immediately', 'frozen', 'police', 'urgent', 'penalty', 'arrest', 'transfer now']
-        is_scam = any(kw in urgency.lower() for kw in scam_keywords)
+        urgency = (data.get('urgency_text', '') or '').lower()
+        context = (data.get('context', '') or '').lower()
+        combined = urgency + ' ' + context
+        
+        scam_keywords = [
+            # urgency
+            'immediately', 'urgent', 'right now', 'hurry', 'deadline', 'expire',
+            # authority
+            'police', 'fsa', 'tax office', 'court', 'government', 'arrest', 'legal action',
+            # isolation
+            "don't tell", "dont tell", 'keep secret', 'no one else', 'just between us', 'tell no one',
+            # grandchild scam
+            "it's me", "its me", 'in trouble', 'please help', 'don\'t tell anyone', 'dont tell anyone',
+            # prize/refund
+            'you won', 'lottery', 'prize', 'refund', 'overpaid', 'claim your',
+            # investment
+            'guaranteed', 'no risk', 'double your',
+            # fear
+            'frozen', 'penalty', 'fine', 'suspended', 'blocked'
+        ]
+        
+        matched = [kw for kw in scam_keywords if kw in combined]
+        is_scam = len(matched) > 0
+        
         return jsonify({
             'verdict': 'BLOCKED' if is_scam else 'CLEARED',
-            'risk_score': 95 if is_scam else 15,
-            'explanation': 'Urgent pressure language detected. This is likely a scam.' if is_scam else 'No suspicious patterns detected.',
-            'explanation_ja': '緊急の圧力言語が検出されました。これは詐欺の可能性があります。' if is_scam else '不審なパターンは検出されませんでした。',
-            'reasoning': f'Keyword-based fallback (Gemini unavailable): {str(e)}'
+            'risk_score': 90 if is_scam else 15,
+            'explanation': f'Suspicious pattern detected: {", ".join(matched[:3])}. This may be a scam. Do not send money.' if is_scam else 'No suspicious patterns detected.',
+            'explanation_ja': '不審なパターンが検出されました。詐欺の可能性があります。送金しないでください。' if is_scam else '不審なパターンは検出されませんでした。',
+            'reasoning': f'Keyword fallback (Gemini quota exceeded). Matched: {matched}'
         })
 
 @app.route("/health", methods=["GET"])
