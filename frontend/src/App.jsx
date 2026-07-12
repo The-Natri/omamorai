@@ -23,29 +23,16 @@ const YIELD_AGENT_URL = 'http://localhost:5002';
 
 export default function App() {
   // UI states
-  const [recipient, setRecipient] = useState('0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC');
-  const [amount, setAmount] = useState('50');
-  const [urgencyText, setUrgencyText] = useState('Please transfer immediately to avoid fee penalties!');
-  const [context, setContext] = useState('User received a text alert claiming unpaid tax bills.');
+  const [recipient, setRecipient] = useState('');
+  const [amount, setAmount] = useState('');
+  const [urgencyText, setUrgencyText] = useState('');
+  const [context, setContext] = useState('');
   
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState('BLOCKED'); // SAFE, WARNING, BLOCKED
+  const [status, setStatus] = useState('SAFE'); // SAFE, WARNING, BLOCKED
   
   // Evaluation results
-  const [evalResult, setEvalResult] = useState({
-    fraud: {
-      verdict: 'BLOCKED',
-      risk_score: 95,
-      explanation_ja: '警告：税金支払い詐欺（還付金詐欺）の手口を検知したため、送金を自動ブロックしました。警察や官公庁が暗号資産で急ぎの支払いを求めることは絶対にありません。送金を中止し、ご家族にご相談ください。',
-      explanation: 'Blocked: Severe pressure language/scam target detected. Government entities do not demand crypto payments.'
-    },
-    audit: { 
-      verdict: 'BLOCKED', 
-      risk_score: 95, 
-      on_chain_status: 'Logged to HSK testnet', 
-      tx_hash: '0x9e9f5da9f134c17698a6b3e1d96a381225f64efba523272422ba3d46f267e93f' 
-    }
-  });
+  const [evalResult, setEvalResult] = useState(null);
 
   const [logs, setLogs] = useState([
     {
@@ -339,6 +326,20 @@ export default function App() {
                   <ArrowRight size={20} />
                 </>
               )}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setRecipient('');
+                setAmount('');
+                setUrgencyText('');
+                setContext('');
+                setEvalResult(null);
+                setStatus('SAFE');
+              }}
+              style={{marginTop: '10px', padding: '10px 20px', cursor: 'pointer', background: '#ccc', border: 'none', borderRadius: '6px', display: 'block', width: '100%', fontWeight: 600, color: '#333'}}
+            >
+              Clear
             </button>
           </form>
 
