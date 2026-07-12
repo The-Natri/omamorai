@@ -17,27 +17,30 @@ The same crypto infrastructure being used to scam them — **we use to protect t
 
 Named after **お守り (Omamori)** — the protective shrine charms every elderly Japanese person carries — Omamorai is a multi-agent AI financial guardian built on HSK Chain.
 
-Every payment intent passes through a 4-stage pipeline before settlement executes:
+Every payment intent passes through our trust verification pipeline before settlement executes:
 
-1. **FraudAgent** — Gemini Flash screens for urgency language, impersonation patterns, anomalous amounts, unknown recipients, and known scam signals. Returns verdict in plain Japanese-friendly language.
-2. **AuditorAgent** — Independently re-evaluates every decision (Veritas architecture). Cryptographically signs cleared verdicts with ECDSA. Nothing executes without this second layer.
-3. **PolicyVault.sol** — Holds user funds. Only releases payment if AuditorAgent's signature is valid and spending limits from GuardianRegistry are respected.
-4. **HSP Settlement** — Payment executes via HSP SDK only after all checks pass. Guardian family notification triggered on FLAGGED transactions.
+1. **VerificationAgent** — Evaluates target address balance and transaction history on HSK Chain via RPC, scoring recipient trust levels (TRUSTED/UNVERIFIED/SUSPICIOUS/BLACKLISTED).
+2. **FraudAgent** — Gemini Flash + keyword fallback screens for urgency language, family/grandchild impersonation, isolation tactics, and prize/refund scams.
+3. **AuditorAgent** — Independently re-evaluates every decision (Veritas architecture). Cryptographically signs cleared verdicts with ECDSA. Nothing executes without this second layer.
+4. **PolicyVault.sol** — Holds user funds. Only releases payment if AuditorAgent's signature is valid and spending limits from GuardianRegistry are respected.
+5. **HSP Settlement** — Payment executes via HSP SDK only after all checks pass. Guardian family notification triggered on FLAGGED transactions.
 
 All verdicts written permanently to **VerdictLog.sol** — immutable, queryable by anyone.
 
 ## Architecture
 ```
 Payment Intent
-    ↓
-FraudAgent (Python + Gemini Flash)
-    ↓ CLEARED / FLAGGED / BLOCKED
-AuditorAgent (independent ECDSA signing)
-    ↓ signed verdict
+      ↓
+VerificationAgent (HSK RPC — on-chain recipient trust scoring)
+      ↓ TRUSTED / SUSPICIOUS / BLACKLISTED
+FraudAgent (Gemini Flash + keyword fallback)
+      ↓ CLEARED / FLAGGED / BLOCKED
+AuditorAgent (independent ECDSA signing + VerdictLog.sol)
+      ↓ signed verdict
 PolicyVault.sol (HSK Chain)
-    ↓ CLEARED only
+      ↓ CLEARED only
 HSP Settlement Layer
-    ↓
+      ↓
 VerdictLog.sol (immutable audit log)
 ```
 
@@ -79,19 +82,20 @@ VerdictLog.sol (immutable audit log)
 ```
 omamorai/
 ├── agents/
-│   ├── fraud_agent.py       # Gemini fraud screening (port 5001)
-│   ├── auditor_agent.py     # ECDSA signing + on-chain logging (port 5003)
-│   └── yield_agent.py       # Conservative RWA allocation (port 5002)
+│   ├── fraud_agent.py        # Gemini fraud screening (port 5001)
+│   ├── yield_agent.py        # Conservative RWA allocation (port 5002)
+│   ├── auditor_agent.py      # ECDSA signing + on-chain logging (port 5003)
+│   └── verification_agent.py # On-chain recipient verification (port 5004)
 ├── contracts/
-│   ├── GuardianRegistry.sol # User + guardian + spending policy registry
-│   ├── PolicyVault.sol      # Fund custody + verdict-gated release
-│   ├── VerdictLog.sol       # Immutable on-chain audit trail
-│   └── MockUSDC.sol         # Testnet stablecoin
+│   ├── GuardianRegistry.sol  # User + guardian + spending policy registry
+│   ├── PolicyVault.sol       # Fund custody + verdict-gated release
+│   ├── VerdictLog.sol        # Immutable on-chain audit trail
+│   └── MockUSDC.sol          # Testnet stablecoin
 ├── hsp-integration/
 │   └── hsp/
 │       └── examples/
 │           └── omamorai-interceptor.ts  # HSP payment interceptor
-└── frontend/                # React dashboard
+└── frontend/                 # React dashboard
 ```
 
 ## Setup
@@ -108,9 +112,10 @@ cd agents
 py -3.11 -m venv venv
 venv\Scripts\pip install -r requirements.txt
 # copy .env.example to .env and fill keys
-venv\Scripts\python fraud_agent.py    # port 5001
-venv\Scripts\python yield_agent.py   # port 5002
-venv\Scripts\python auditor_agent.py # port 5003
+venv\Scripts\python fraud_agent.py        # port 5001
+venv\Scripts\python yield_agent.py        # port 5002
+venv\Scripts\python auditor_agent.py      # port 5003
+venv\Scripts\python verification_agent.py # port 5004
 
 # 3. HSP interceptor
 cd hsp-integration/hsp
