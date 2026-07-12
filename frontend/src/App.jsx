@@ -21,6 +21,20 @@ const FRAUD_AGENT_URL = 'http://localhost:5001';
 const AUDITOR_AGENT_URL = 'http://localhost:5003';
 const YIELD_AGENT_URL = 'http://localhost:5002';
 
+export class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { hasError: false, error: null }; }
+  static getDerivedStateFromError(error) { return { hasError: true, error }; }
+  render() {
+    if (this.state.hasError) return (
+      <div style={{padding:40,color:'red'}}>
+        <h2>Something went wrong. Please refresh the page.</h2>
+        <pre>{this.state.error?.message}</pre>
+      </div>
+    );
+    return this.props.children;
+  }
+}
+
 export default function App() {
   // UI states
   const [recipient, setRecipient] = useState('');
